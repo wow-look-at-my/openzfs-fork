@@ -2,15 +2,36 @@ name: "CodeQL"
 
 on:
   push:
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    outputs:
+      run_linux: ${{ steps.gate.outputs.run_linux }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate Linux CodeQL off the macOS-port tree
+        id: gate
+        run: |
+          # CodeQL's C/C++ autobuild compiles the tree on Linux, which the
+          # macOS-port tree (module/os/macos present) does not support. The
+          # macOS code is validated by macos-build.yaml. Skip when macOS
+          # sources are present.
+          if [ -d module/os/macos ]; then
+            echo "run_linux=false" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "run_linux=true" | tee -a "$GITHUB_OUTPUT"
+          fi
+
   analyze:
     name: Analyze
+    needs: [ gate ]
+    if: ${{ needs.gate.outputs.run_linux == 'true' }}
     runs-on: ubuntu-22.04
     permissions:
       actions: read

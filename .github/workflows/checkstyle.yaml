@@ -2,14 +2,35 @@ name: checkstyle
 
 on:
   push:
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    outputs:
+      run_linux: ${{ steps.gate.outputs.run_linux }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate Linux checks off the macOS-port tree
+        id: gate
+        run: |
+          # checkstyle does a full Linux ./configure && make. The macOS-port
+          # tree (module/os/macos present) is not maintained to build on Linux
+          # and is validated by macos-build.yaml instead. Skip when macOS
+          # sources are present.
+          if [ -d module/os/macos ]; then
+            echo "run_linux=false" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "run_linux=true" | tee -a "$GITHUB_OUTPUT"
+          fi
+
   checkstyle:
+    needs: [ gate ]
+    if: ${{ needs.gate.outputs.run_linux == 'true' }}
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
