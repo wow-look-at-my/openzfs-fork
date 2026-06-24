@@ -2653,12 +2653,20 @@ top:
 
 	caddr_t va;
 
-	if (ubc_upl_map(upl, (vm_offset_t *)&va) != KERN_SUCCESS) {
+	/*
+	 * Pageout only reads from UPL pages (data is copied out via
+	 * dmu_write), so map read-only.  ubc_upl_map() hardcodes
+	 * VM_PROT_DEFAULT (RW), which SPTM rejects on non-writable
+	 * frame types, causing a VIOLATION_ILLEGAL_PERMS panic.
+	 * ubc_upl_map_range() lets us pass VM_PROT_READ and also
+	 * returns the address already adjusted to upl_offset.
+	 */
+	if (ubc_upl_map_range(upl, upl_offset, size, VM_PROT_READ,
+	    (vm_offset_t *)&va) != KERN_SUCCESS) {
 		err = EINVAL;
 		goto out;
 	}
 
-	va += upl_offset;
 	while (len >= PAGESIZE) {
 		ssize_t sz = PAGESIZE;
 
@@ -2694,7 +2702,7 @@ top:
 		// dprintf("zero last 0x%lx bytes.\n", PAGESIZE-sz);
 
 	}
-	ubc_upl_unmap(upl);
+	ubc_upl_unmap_range(upl, upl_offset, size);
 
 	if (err == 0) {
 		uint64_t mtime[2], ctime[2];
