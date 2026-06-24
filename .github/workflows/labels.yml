@@ -15,6 +15,7 @@ jobs:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.pull_request.html_url }}
+        continue-on-error: true
         run: |
           gh pr edit $ISSUE --add-label "Status: Work in Progress"
 
@@ -25,6 +26,7 @@ jobs:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.pull_request.html_url }}
+        continue-on-error: true
         run: |
           gh pr edit $ISSUE --remove-label "Status: Accepted,Status: Inactive,Status: Revision Needed,Status: Stale"
 
@@ -35,6 +37,7 @@ jobs:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.pull_request.html_url }}
+        continue-on-error: true
         run: |
           gh pr edit $ISSUE --remove-label "Status: Accepted,Status: Code Review Needed,Status: Inactive,Status: Revision Needed,Status: Stale" --add-label "Status: Work in Progress"
 
@@ -45,5 +48,6 @@ jobs:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.pull_request.html_url }}
+        continue-on-error: true
         run: |
           gh pr edit $ISSUE --remove-label "Status: Accepted,Status: Inactive,Status: Revision Needed,Status: Stale,Status: Work in Progress" --add-label "Status: Code Review Needed"
