@@ -2,14 +2,33 @@ name: zloop
 
 on:
   push:
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    outputs:
+      run_linux: ${{ steps.gate.outputs.run_linux }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate Linux CI off the macOS-port tree
+        id: gate
+        run: |
+          # zloop is a Linux-only ztest stress run. Skip on macOS-port
+          # branches (built by macos-build.yaml); module/os/macos marks them.
+          if [ -d module/os/macos ]; then
+            echo "run_linux=false" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo "run_linux=true" | tee -a "$GITHUB_OUTPUT"
+          fi
+
   zloop:
+    needs: [ gate ]
+    if: ${{ needs.gate.outputs.run_linux == 'true' }}
     runs-on: ubuntu-24.04
     env:
       WORK_DIR: /mnt/zloop
